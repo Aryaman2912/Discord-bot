@@ -46,26 +46,9 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author == bot.user:
         return
-    lols = [
-        "Arjun is a barking and irritating dog that bites everyone",
-        "Aditi is still a very very boring cousin",
-        "Chintu is a tenth grader unhappy with school but tops everything anyways",
-        "Amogh is a douchebag and always says 'hurts man', 'STFU', etc",
-        "Arya is my master",
-        "At your service.",
-    ]
-    # Dictionary storing personalised message indices
-    d = {
-        "arjun":0,
-        "chintu":2,
-        "aditi":1,
-        "amogh":3,
-        "arya":4,
-        "jarvis":5,
-    }
-    response = lols[d[message.content.lower()]]
-    await message.channel.send(response)
-    # await bot.process_commands(message)
+    response = "at your service"
+    if message.content.lower() == 'jarvis':
+        await message.channel.send(response)
 
 # Fetch inspiration quotes 
 URL = 'https://www.brainyquote.com/topics/inspirational-quotes'
