@@ -16,7 +16,7 @@ GUILD = os.getenv('DISCORD_GUILD')
 
 intents = discord.Intents.all()
 # client = discord.Client(intents=intents)
-bot = commands.Bot(command_prefix='!',intents=intents)
+bot = commands.Bot(command_prefix='!',intents=intents,help_command=None)
 
 
 # Print members to stdout when connected
@@ -51,53 +51,25 @@ async def on_message(message):
     if message.content.lower() == 'jarvis':
         await message.channel.send(response)
 
-# Fetch inspiration quotes 
-URL = 'https://www.brainyquote.com/topics/inspirational-quotes'
-page = requests.get(URL)
-soup = BeautifulSoup(page.content,'html.parser')
-results = soup.find(id='quotesList')
-quotes = results.find_all('a',class_='b-qt')
-inspiration_list = []
-for quote in quotes:
-    inspiration_list.append(quote.text)
-
-# Fetch motivational quotes
-URL1 = 'https://www.brainyquote.com/topics/motivational-quotes'
-page = requests.get(URL1)
-soup = BeautifulSoup(page.content,'html.parser')
-results = soup.find(id='quotesList')
-quotes = results.find_all('a',class_='b-qt')
-motivation_list = []
-for quote in quotes:
-    motivation_list.append(quote.text)
-
-# Fetch attitude quotes 
-URL = 'https://www.brainyquote.com/topics/attitude-quotes'
-page = requests.get(URL)
-soup = BeautifulSoup(page.content,'html.parser')
-results = soup.find(id='quotesList')
-quotes = results.find_all('a',class_='b-qt')
-attitude_list = []
-for quote in quotes:
-    attitude_list.append(quote.text)
-
-# Respond to '!inspiration' command
-@bot.command(name='inspiration',help='Responds with an inspirational quote')
-async def inspiration(ctx):
-    response = random.choice(inspiration_list)
-    await ctx.send(response)
-
-# Respond to '!motivation' command
-@bot.command(name='motivation',help='Responds with a motivational quote')
-async def motivation(ctx):
-    response = random.choice(motivation_list)
-    await ctx.send(response)
-    
-# Respond to '!attitude' command
-@bot.command(name='attitude',help='Responds with a quote about attitude')
-async def attitude(ctx):
-    response = random.choice(attitude_list)
-    await ctx.send(response)
+# Give quote on requested topic
+@bot.command(name='quote',help='give a quote on a requested topic')
+async def quote(ctx,topic=''):
+    URL = 'https://www.brainyquote.com/topics/'+topic+'-quotes'
+    page = requests.get(URL)
+    if page.status_code == 404:
+        await ctx.send("Enter a valid topic you nitwit. Stupid people smh")
+    else:
+        soup = BeautifulSoup(page.content,'html.parser')
+        results = soup.find(id='quotesList')
+        quotes = results.find_all('a',class_='b-qt')
+        if quotes == None:
+            await ctx.send("Nothing available")
+        else:
+            quotes_list = []
+            for quote in quotes:
+                quotes_list.append(quote.text)
+            response = random.choice(quotes_list)
+            await ctx.send(response)
 
 # Create new channel
 @bot.command(name='create-channel',help='creates a new text channel')
@@ -109,6 +81,17 @@ async def create_channel(ctx,channel_name = 'new'):
         print(f'Creating a new channel: {channel_name}')
         await guild.create_text_channel(channel_name)
 
+# Give info about a movie
+@bot.command(name='info')
+async def info(ctx,movie=None):
+    if movie == None:
+        response = 'Enter a movie douchebag\n'
+        await ctx.send(response)
+    else:
+        names = movie.split()
+        URL = 'https://www.google.com/search?q=' + '+'.join([word for word in names])
+        page = requests.get(URL)
+             
 # Kick members
 @bot.command(pass_context=True,name='kick',help='kick a member')
 @commands.has_permissions(kick_members=True)
@@ -120,17 +103,37 @@ async def kick(ctx,username: discord.Member):
         await ctx.send(f"Kicked {username}")
 @kick.error
 async def kick_error(ctx,error):
-    try:
-        if isinstance(error,commands.errors.BadArgument):
-            print("Here1")
-            await ctx.send("Invalid username")
-        elif isinstance(error,commands.errors.MissingPermissions):
-            print("Here2")
-            await ctx.send("You do not have the correct permissions for this command")
-    except:
-        print("Here4")
-        print(sys.exc_info())
-        await ctx.send(sys.exc_info())
+    if isinstance(error,commands.errors.BadArgument):
+        await ctx.send("Invalid username")
+    elif isinstance(error,commands.errors.MissingPermissions):
+        await ctx.send("You do not have the correct permissions for this command")
+
+# Fetch topics for quotes
+URL = 'https://www.brainyquote.com/topics/'
+page = requests.get(URL)
+soup = BeautifulSoup(page.content,'html.parser')
+x = soup.find_all('span',class_='topicContentName')
+topics = []
+for item in x:
+    topics.append(item.text)
+
+# Custom help command
+@bot.command(name='help')
+async def help(ctx,command=None):
+    if command == None:
+        response = '```List of available commands:\n\tquote\n\tkick\n\tcreate-channel```'
+        await ctx.send(response)
+    if command == 'quote':
+        response = '\n'.join([item for item in topics])
+        response = '!quote <topic>\n'+'List of available topics are: \n' + response
+        await ctx.send(f'```{response}```')
+    if command == 'kick':
+        response = '!kick <username>'
+        await ctx.send(f'```{response}```')
+    if command == 'create-channel':
+        response = "!create-channel <name>\nDefault name is 'new'"
+        await ctx.send(f'```{response}```')
+
 
 # Error handling
 @bot.event
