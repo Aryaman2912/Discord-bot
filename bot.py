@@ -5,6 +5,7 @@ import discord
 import selenium
 import bs4
 import requests
+import imdb
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -82,15 +83,27 @@ async def create_channel(ctx,channel_name = 'new'):
         await guild.create_text_channel(channel_name)
 
 # Give info about a movie
-@bot.command(name='info')
-async def info(ctx,movie=None):
-    if movie == None:
+@bot.command(name='movie')
+async def movie(ctx,*args):
+    movies = " ".join(args[:])
+    if movies == None:
         response = 'Enter a movie douchebag\n'
         await ctx.send(response)
     else:
-        names = movie.split()
-        URL = 'https://www.google.com/search?q=' + '+'.join([word for word in names])
-        page = requests.get(URL)
+        ia = imdb.IMDb()
+        # movies = movies[1:-1]
+        print(movies)
+        search = ia.search_movie(movies)
+        id = search[0].movieID
+        information = ia.get_movie(id)
+        print(id)
+        name = information
+        rating = information.data['rating']
+        genre = ','.join([genre for genre in information.data['genres']])
+        # plot = information.data['plot outline']
+        language = information.data['languages'][0]
+        response = f'Name:{name}\nRating:{rating}\nGenres:{genre}\nLanguage:{language}\n' 
+        await ctx.send(f'```{response}```')
              
 # Kick members
 @bot.command(pass_context=True,name='kick',help='kick a member')
@@ -121,7 +134,7 @@ for item in x:
 @bot.command(name='help')
 async def help(ctx,command=None):
     if command == None:
-        response = '```List of available commands:\n\tquote\n\tkick\n\tcreate-channel```'
+        response = '```List of available commands:\n\tquote\n\tkick\n\tcreate-channel\n\tmovie```'
         await ctx.send(response)
     if command == 'quote':
         response = '\n'.join([item for item in topics])
@@ -132,6 +145,9 @@ async def help(ctx,command=None):
         await ctx.send(f'```{response}```')
     if command == 'create-channel':
         response = "!create-channel <name>\nDefault name is 'new'"
+        await ctx.send(f'```{response}```')
+    if command == 'movie':
+        response = "!movie <name>\nEnter the name in quotes\nProvides rating,genres and language"
         await ctx.send(f'```{response}```')
 
 
